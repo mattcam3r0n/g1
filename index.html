@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#07111f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Glucose Studio">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.svg">
 <title>Glucose Analytics Studio</title>
 <style>
 :root{--bg:#07111f;--panel:#0d1b2d;--panel2:#12253d;--text:#eef6ff;--muted:#9fb1c7;--cyan:#2dd4bf;--blue:#60a5fa;--amber:#fbbf24;--orange:#fb923c;--red:#f87171;--green:#4ade80;--line:#203a58;--shadow:0 16px 45px rgba(0,0,0,.28)}
@@ -138,6 +145,7 @@ function activeTableRange(){if(zoom.trend)return{tMin:zoom.trend.tMin,tMax:zoom.
 function renderTable(){const cols=['date','readings','mean','max','min','median','spikes_140','spikes_160','spikes_180','spikes_200','pct_below_140','pct_below_160','pct_below_180','pct_above_180','pct_above_200','overnight_avg','daytime_avg','a1c_14d','a1c_30d','a1c_90d'],zr=activeTableRange(),hourRows=hourSelectedRows(analysisRows),recalculated=deriveDailyRows(hourRows),shown=zr?recalculated.filter(r=>{const ds=new Date(r.date+'T00:00:00').getTime(),de=ds+86400000;return de>zr.tMin&&ds<zr.tMax}):recalculated;$('table').innerHTML='<thead><tr>'+cols.map(c=>`<th>${c.replaceAll('_',' ')}</th>`).join('')+'</tr></thead><tbody>'+shown.map(r=>'<tr>'+cols.map(c=>`<td>${typeof r[c]==='number'&&!Number.isInteger(r[c])?fmt(r[c],2):r[c]??'—'}</td>`).join('')+'</tr>').join('')+'</tbody>';const hourNote=$('syncZoom').checked&&zoom.hourly?` using ${fmt(Math.min(zoom.hourly.xMin,zoom.hourly.xMax),1)}:00–${fmt(Math.max(zoom.hourly.xMin,zoom.hourly.xMax),1)}:00 selected hours`:'';$('dailyTableScope').textContent=(zr?`${shown.length} of ${dailyRows.length} days shown for zoomed date range`:`All ${shown.length} days`)+hourNote}
 function status(s,e){$('status').innerHTML=s;$('status').className='status'+(e?' error':'')}
 $('file').addEventListener('change',e=>loadCSVFile(e.target.files[0]));$('drop').addEventListener('dragover',e=>e.preventDefault());$('drop').addEventListener('drop',e=>{e.preventDefault();loadCSVFile(e.dataTransfer.files[0])});$('analyze').onclick=analyze;$('demo').onclick=()=>{rawRows=[];let t=new Date('2026-10-01T00:00:00');for(let i=0;i<33*288;i++){const h=t.getHours()+t.getMinutes()/60,base=118+10*Math.sin((h-6)*Math.PI/12),meal=28*Math.exp(-(((h-8)/1.2)**2))+38*Math.exp(-(((h-19)/1.5)**2)),noise=8*Math.sin(i*.83)+5*Math.sin(i*.19);rawRows.push({t:new Date(t),v:Math.max(72,Math.min(200,Math.round(base+meal+noise)))});t=new Date(t.getTime()+300000)}$('fileName').textContent='Generated demonstration data';setLoadedDateRange(rawRows);analyze()};$('download').onclick=()=>{if(!dailyRows.length)return;const cols=Object.keys(dailyRows[0]),csv=[cols.join(','),...dailyRows.map(r=>cols.map(c=>Number.isFinite(r[c])?r[c]:'').join(','))].join('\n'),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='glucose_daily_statistics.csv';a.click();URL.revokeObjectURL(a.href)};$('resetZoom').onclick=()=>resetAllZoom(true);$('resetDailyZoom').onclick=()=>resetOne('daily');$('resetHourlyZoom').onclick=()=>resetOne('hourly');$('syncZoom').onchange=()=>{if($('syncZoom').checked&&zoom.trend)zoom.daily={...(zoom.daily||{}),tMin:zoom.trend.tMin,tMax:zoom.trend.tMax};redrawCharts()};installBoxZoom('trend');installBoxZoom('daily');installBoxZoom('hourly');let timer;window.addEventListener('resize',()=>{if($('report').classList.contains('hidden'))return;clearTimeout(timer);timer=setTimeout(redrawCharts,120)});
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{})})}
 </script>
 </body>
 </html>
